@@ -1,0 +1,81 @@
+﻿@page "/recuperarConta"
+
+@using ProjetoFamiliaAdvogado.Model.Cadastro
+@using ProjetoFamiliaAdvogado.Repository
+
+@inject IConsulta_Local iConsultaLocal
+@inject NavigationManager Navigation
+
+<link rel="stylesheet" href="css/projetoFamilia/recuperarConta.css" />
+
+<button type="button" @onclick="Retornar" class="btn btn-outline-warning">Voltar</button>
+
+<br />
+<br />
+
+<h3 id="titulo">Contas Cadastradas</h3>
+
+<br />
+<br />
+
+<div class="table-responsive">
+    <table class="table">
+        <thead class="thead-dark">
+            <tr>
+                <th scope="col" style="color:white">#</th>
+                <th scope="col" style="color:white">Usuario</th>
+                <th scope="col" style="color:white">Nome</th>
+                <th scope="col" style="color:white">Senha</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (usuarioModels != null && usuarioModels.Count > 0)
+            {
+                @foreach (var item in usuarioModels)
+                {
+                    <tr>
+                        <td style="color:white">@Valor</td>
+                        <td style="color:white">@item.UsuarioLogin</td>
+                        <td style="color:white">@item.Nome</td>
+                        <td style="color:white">@item.Password</td>
+                    </tr>
+                    Valor++;
+                }
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    private List<UsuarioModel> usuarioModels;
+
+    private int Valor = 1;
+
+    protected async override Task OnInitializedAsync()
+    {
+        try
+        {
+            usuarioModels = await iConsultaLocal.GetAllUsuario();
+        }
+        catch (Exception ex)
+        {
+            Consulta_Local consulta_Local = new Consulta_Local();
+            consulta_Local.RegistrarErro(ex);
+            throw;
+        }
+    }
+
+    private void Retornar()
+    {
+        try
+        {
+            Navigation.NavigateTo("/login");
+        }
+        catch (Exception ex)
+        {
+            Consulta_Local consulta_Local = new Consulta_Local();
+            consulta_Local.RegistrarErro(ex);
+            throw;
+        }
+    }
+}

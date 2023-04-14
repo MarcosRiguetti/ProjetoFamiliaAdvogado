@@ -1,0 +1,232 @@
+﻿@page "/cadastroObservacao"
+@page "/editarObservacao/{IdAnotacoes:int}"
+
+@using ProjetoFamiliaAdvogado.Model.Justica
+@using ProjetoFamiliaAdvogado.Model.Cadastro
+@using ProjetoFamiliaAdvogado.Repository
+
+@inject IConsulta_Local iConsultaLocal
+@inject NavigationManager Navigation
+
+
+<link rel="stylesheet" href="css/projetoFamilia/cadastroAudiencia.css" />
+
+
+<button type="button" @onclick="Retornar" class="btn btn-outline-warning">Voltar</button>
+
+<br />
+<br />
+
+<h3 style="text-align: center; font-weight: bold">Cadastro De Anotações</h3>
+
+<br />
+
+<EditForm Model="@anotacoesModel" OnValidSubmit="Validar">
+    <DataAnnotationsValidator />
+
+    <br />
+
+    <div class="form-group">
+        <label id="fomrLabel" style="font-weight: bold">Observações:</label>
+        <input type="text" @bind-value="anotacoesModel.Texto" class="form-control" />
+        <ValidationMessage For="@(()=> anotacoesModel.Texto)" />
+    </div>
+
+    <br />
+
+    <div class="mt-2 form-group select-wrapper">
+        <label id="fomrLabel" style="font-weight: bold">Escolha a data da Audiência:</label>
+        <br />
+        <InputSelect class="form-select" @bind-Value=anotacoesModel.DataAudiencia>
+            <option value="">Selecione uma opção</option>
+            @if (audienciaModels != null)
+            {
+                @foreach (var item in audienciaModels)
+                {
+                    @if (item.Usuario == NomeUsuario)
+                    {
+                        <option value="@item.DataAudiencia">@item.DataAudiencia</option>
+                    }
+                }
+            }
+        </InputSelect>
+    </div>
+
+    <br />
+    <br />
+
+    <div class="mt-2 form-group select-wrapper">
+        <label id="fomrLabel" style="font-weight: bold">Escolha um Cliente:</label>
+        <br />
+        <InputSelect class="form-select" @bind-Value=anotacoesModel.Cliente>
+            <option value="">Selecione uma opção</option>
+            @if (clienteModels != null)
+            {
+                @foreach (var item in clienteModels)
+                {
+                    @if (item.UsuarioLogin == NomeUsuario)
+                    {
+                        <option value="@item.Cliente">@item.Cliente</option>
+                    }
+                }
+            }
+        </InputSelect>
+    </div>
+
+    <br />
+
+    <div class="text-center mt-2">
+        @if (IdAnotacoes > 0)
+        {
+            <button class="btn btn-dark btn-lg" type="submit">
+                <span class="@_spinnerClass" role="status" aria-hidden="true"></span>
+                Atualizar
+            </button>
+        }
+        else
+        {
+            <button class="btn btn-dark btn-lg" type="submit">
+                <span class="@_spinnerClass" role="status" aria-hidden="true"></span>
+                Cadastrar
+            </button>
+        }
+        
+    </div>
+
+</EditForm>
+
+@code {
+    AnotacoesModel anotacoesModel = new();
+
+    private string _spinnerClass = "";
+    private string NomeUsuario;
+
+    List<AudienciaModel> audienciaModels;
+    List<ClienteModel> clienteModels;
+    List<AnotacoesModel> anotacoesModels;
+
+    [Parameter]
+    public int IdAnotacoes { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        anotacoesModels = await iConsultaLocal.GetAllAnotacoesModel();
+
+        audienciaModels = await iConsultaLocal.GetAllAudienciaModel();
+
+        clienteModels = await iConsultaLocal.GetAllClienteModel();
+
+        var verificarUsuario = await iConsultaLocal.GetAllLoginGeral();
+
+        if (verificarUsuario != null && verificarUsuario.Count > 0)
+        {
+            NomeUsuario = verificarUsuario[0].Usuario;
+        }
+
+        if (IdAnotacoes > 0)
+        {
+            var response = await iConsultaLocal.GetAnotacoesModelByID(IdAnotacoes);
+
+            if (response != null)
+            {
+                NomeUsuario = response.Usuario;
+                anotacoesModel.Texto = response.Texto;
+                anotacoesModel.DataAudiencia = response.DataAudiencia;
+                anotacoesModel.Cliente = response.Cliente;
+            }
+        }
+    }
+
+    private async void Validar()
+    {
+        try
+        {
+            _spinnerClass = "spinner-border spinner-border-sm";
+
+            if (anotacoesModel.Texto != null && anotacoesModel.Texto != "")
+            {
+                if (anotacoesModel.Cliente != null && anotacoesModel.Cliente != "")
+                {
+                    if (IdAnotacoes == 0)
+                    {
+                        var anotacaoModelFinal = new Model.Justica.AnotacoesModel
+                        {
+                            Cliente = anotacoesModel.Cliente,
+                            DataAudiencia = anotacoesModel.DataAudiencia,
+                            Usuario = NomeUsuario,
+                            Texto = anotacoesModel.Texto
+                        };
+
+                        var responseAnotacao = await iConsultaLocal.AddAnotacoesModel(anotacaoModelFinal);
+
+                        if (responseAnotacao > 0)
+                        {
+                            await App.Current.MainPage.DisplayAlert("Sucesso", "Anotação Registrada com sucesso!", "OK");
+
+                            Navigation.NavigateTo("/InicioObservacao");
+                        }
+                        else
+                        {
+                            await App.Current.MainPage.DisplayAlert("Erro", "Não foi possivel cadastrar sua Anotação!", "OK");
+                        }
+                    }
+                    else
+                    {
+                        var anotacaoModelFinal = new Model.Justica.AnotacoesModel
+                        {
+                            IdAnotacoes = IdAnotacoes,
+                            Cliente = anotacoesModel.Cliente,
+                            DataAudiencia = anotacoesModel.DataAudiencia,
+                            Usuario = NomeUsuario,
+                            Texto = anotacoesModel.Texto
+                        };
+
+                        var responseAnotacao = await iConsultaLocal.UpdateAnotacoesModel(anotacaoModelFinal);
+
+                        if (responseAnotacao > 0)
+                        {
+                            await App.Current.MainPage.DisplayAlert("Sucesso", "Anotação Atualizada com sucesso!", "OK");
+
+                            Navigation.NavigateTo("/InicioObservacao");
+                        }
+                        else
+                        {
+                            await App.Current.MainPage.DisplayAlert("Erro", "Não foi possivel Atualizar sua Anotação!", "OK");
+                        }
+                    }
+                }
+                else
+                {
+                    await App.Current.MainPage.DisplayAlert("Oops", "Preencha a opção do cliente!", "OK");
+                }
+            }
+            else
+            {
+                await App.Current.MainPage.DisplayAlert("Oops", "Informe uma Observação!", "OK");
+            }
+
+            _spinnerClass = "";
+            this.StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Consulta_Local consulta_Local = new Consulta_Local();
+            consulta_Local.RegistrarErro(ex);
+            throw;
+        }
+    }
+
+    private void Retornar()
+    {
+        try
+        {
+            Navigation.NavigateTo("/InicioObservacao");
+        }
+        catch (Exception ex)
+        {
+            Consulta_Local consulta_Local = new Consulta_Local();
+            consulta_Local.RegistrarErro(ex);
+            throw;
+        }
+    }
+}

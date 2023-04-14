@@ -1,0 +1,35 @@
+﻿@page "/"
+
+@using ProjetoFamiliaAdvogado.Model.Login
+@using ProjetoFamiliaAdvogado.Repository
+
+@inject NavigationManager Navigation
+@inject IConsulta_Local iConsultaLocal
+
+Carregando App...
+
+@code 
+{
+    private string loginSessaoSalvo;
+
+    List<LoginSessaoModel> loginSessaoModels;
+
+    protected async override Task OnInitializedAsync()
+    {
+        loginSessaoModels = await iConsultaLocal.GetAllLoginGeral();
+
+        if (loginSessaoModels != null && loginSessaoModels.Count > 0)
+        {
+            loginSessaoSalvo = loginSessaoModels[0].Usuario;
+        }
+
+        if (loginSessaoSalvo != null)
+        {
+            Navigation.NavigateTo("/inicio");
+        }
+        else
+        {
+            Navigation.NavigateTo("/login");
+        }
+    }
+}

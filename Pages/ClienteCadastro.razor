@@ -1,0 +1,201 @@
+﻿@page "/cadastroCliente"
+@page "/editarCliente/{ClienteModelID:int}"
+
+@using ProjetoFamiliaAdvogado.Model.Cadastro
+@using ProjetoFamiliaAdvogado.Repository
+
+@inject IConsulta_Local iConsultaLocal
+@inject NavigationManager Navigation
+
+
+<button type="button" @onclick="Retornar" class="btn btn-outline-warning">Voltar</button>
+
+<br />
+<br />
+
+<h3 style="text-align: center; font-weight: bold">Cadastro de Clientes</h3>
+
+<br />
+
+<EditForm Model="@clienteModel" OnValidSubmit="Validar">
+    <DataAnnotationsValidator />
+
+    <div class="form-group">
+        <input class="form-control" type="hidden" @bind-value="@NomeUsuario">
+        <ValidationMessage For="@(()=> clienteModel.UsuarioLogin)" />
+    </div>
+
+    <br />
+
+    <div class="form-group">
+        <label id="fomrLabel">Digite o Nome do cliente:</label>
+        <input type="text" @bind-value="clienteModel.Cliente" class="form-control" placeholder="👤" />
+        <ValidationMessage For="@(()=> clienteModel.Cliente)" />
+    </div>
+
+    <br />
+
+    <div class="mt-2 form-group">
+        <label id="fomrLabel">Digite o Nome do Advogado:</label>
+        <input type="text" @bind-value="clienteModel.Advogado" class="form-control" placeholder="💼">
+        <ValidationMessage For="@(()=> clienteModel.Advogado)" />
+    </div>
+
+    <br />
+
+    <div class="mt-2 form-group">
+        <label id="fomrLabel">Digite o Telefone para contato:</label>
+        <input type="text" @bind-value="clienteModel.Contato" class="form-control" placeholder="📱">
+        <ValidationMessage For="@(()=> clienteModel.Contato)" />
+    </div>
+
+    <br />
+
+    <div class="mt-2 form-group">
+        <label id="fomrLabel">Digite E-mail para contato:</label>
+        <input type="text" @bind-value="clienteModel.Email" class="form-control" placeholder="✉️">
+        <ValidationMessage For="@(()=> clienteModel.Email)" />
+    </div>
+
+    <br />
+
+    <div class="mt-2 form-group">
+        <label id="fomrLabel">Digite o Nome do Acusado:</label>
+        <input type="text" @bind-value="clienteModel.Acusada" class="form-control" placeholder="👀">
+        <ValidationMessage For="@(()=> clienteModel.Acusada)" />
+    </div>
+
+    <br />
+
+    <div class="text-center mt-2">
+        <button class="btn btn-dark btn-lg" type="submit">
+            <span class="@_spinnerClass" role="status" aria-hidden="true"></span>
+            Salvar
+        </button>
+    </div>
+
+</EditForm>
+
+
+@code
+{
+    ClienteModel clienteModel = new();
+
+    List<ClienteModel> clienteModels;
+
+    private string _spinnerClass = "";
+    private string NomeUsuario;
+
+    [Parameter]
+    public int ClienteModelID { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var verificarUsuario = await iConsultaLocal.GetAllLoginGeral();
+
+        if (verificarUsuario != null && verificarUsuario.Count > 0)
+        {
+            NomeUsuario = verificarUsuario[0].Usuario;
+        }
+
+        if (ClienteModelID > 0)
+        {
+            var response = await iConsultaLocal.GetClienteModelByID(ClienteModelID);
+
+            if (response != null)
+            {
+                NomeUsuario = response.UsuarioLogin;
+                clienteModel.Cliente = response.Cliente;
+                clienteModel.Advogado = response.Advogado;
+                clienteModel.Contato = response.Contato;
+                clienteModel.Email = response.Email;
+                clienteModel.Acusada = response.Acusada;
+            }
+        }
+
+        clienteModels = await iConsultaLocal.GetAllClienteModel();
+    }
+
+    private void Retornar()
+    {
+        try
+        {
+            Navigation.NavigateTo("/inicioCliente");
+        }
+        catch (Exception ex)
+        {
+            Consulta_Local consulta_Local = new Consulta_Local();
+            consulta_Local.RegistrarErro(ex);
+            throw;
+        }
+    }
+
+    private async Task Validar()
+    {
+        try
+        {
+            _spinnerClass = "spinner-border spinner-border-sm";
+
+            var verificarExiste = clienteModels.FirstOrDefault(x => x.Cliente == clienteModel.Cliente && x.UsuarioLogin == NomeUsuario);
+
+            if (verificarExiste == null)
+            {
+                var clienteModelFinal = new Model.Cadastro.ClienteModel
+                {
+                    UsuarioLogin = NomeUsuario,
+                    Cliente = clienteModel.Cliente,
+                    Advogado = clienteModel.Advogado,
+                    Contato = clienteModel.Contato,
+                    Email = clienteModel.Email,
+                    Acusada = clienteModel.Acusada
+                };
+
+                int response = await iConsultaLocal.AddClienteModel(clienteModelFinal);
+
+                if (response > 0)
+                {
+                    await App.Current.MainPage.DisplayAlert("Sucesso", "Cliente registrado com sucesso!", "OK");
+                    Navigation.NavigateTo("/inicioCliente");
+                }
+                else
+                {
+                    await App.Current.MainPage.DisplayAlert("Erro", "Cliente não registrado!", "OK");
+                }
+            }
+            else
+            {
+                var clienteModelFinal = new Model.Cadastro.ClienteModel
+                {
+                    UsuarioLogin = NomeUsuario,
+                    Cliente = clienteModel.Cliente,
+                    Advogado = clienteModel.Advogado,
+                    Contato = clienteModel.Contato,
+                    Email = clienteModel.Email,
+                    Acusada = clienteModel.Acusada,
+                    ClienteModelID = ClienteModelID
+                };
+
+                int response = await iConsultaLocal.UpdateClienteModel(clienteModelFinal);
+
+                if (response > 0)
+                {
+                    await App.Current.MainPage.DisplayAlert("Sucesso", "Cliente Atualizado com sucesso!", "OK");
+                    Navigation.NavigateTo("/inicioCliente");
+                }
+                else
+                {
+                    await App.Current.MainPage.DisplayAlert("Erro", "Cliente não Atualizado!", "OK");
+                }
+            }
+
+            _spinnerClass = "";
+            this.StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Consulta_Local consulta_Local = new Consulta_Local();
+            consulta_Local.RegistrarErro(ex);
+            throw;
+        }
+    }
+}

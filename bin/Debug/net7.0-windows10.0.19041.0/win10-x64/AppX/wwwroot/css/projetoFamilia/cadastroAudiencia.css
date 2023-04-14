@@ -1,0 +1,47 @@
+﻿/* Estilo para o InputSelect */
+.select-wrapper 
+{
+    position: relative;
+    display: inline-block;
+}
+
+    .select-wrapper select {
+        display: inline-block;
+        font-size: 16px;
+        font-weight: 300;
+        color: #333;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-shadow: none;
+        background-color: #fff;
+        cursor: pointer;
+        appearance: none;
+    }
+
+        .select-wrapper select:focus {
+            outline: none;
+            border: 1px solid #0078d7;
+            box-shadow: none;
+        }
+
+   
+
+/* Estilo para a seta do InputSelect */
+.select-wrapper::before {
+        content: "";
+        display: block;
+        position: absolute;
+        top: 50%;
+        right: 5px;
+        transform: translateY(-50%);
+        width: 0;
+        height: 0;
+        border-top: 6px solid #333;
+        border-left: 4px solid transparent;
+        border-right: 4px solid transparent;
+        pointer-events: none;
+    }
+
+.select-wrapper select:hover + ::before {
+        border-top-color: #0078d7;
+    }

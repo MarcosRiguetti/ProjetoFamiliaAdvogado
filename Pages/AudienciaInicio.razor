@@ -1,0 +1,99 @@
+﻿@page "/audienciaInicio"
+
+@using ProjetoFamiliaAdvogado.Model.Justica
+@using ProjetoFamiliaAdvogado.Repository
+
+@inject IConsulta_Local iConsultaLocal
+@inject NavigationManager Navigation
+
+<h3 style="text-align: center; font-weight: bold">Audiências Cadastradas</h3>
+
+<br />
+
+<div class="table-responsive">
+    <table class="table">
+        <thead class="thead-dark">
+            <tr>
+                <th scope="col">Cliente</th>
+                <th scope="col">Data da Audiência</th>
+                <th scope="col">Tipo de Processo</th>
+                <th scope="col">Número do Processo</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (audienciaModels != null && audienciaModels.Count > 0)
+            {
+                @foreach (var item in audienciaModels)
+                {
+                    <tr>
+                        @if (item.Usuario == NomeUsuario)
+                        {
+                            <td>@item.Cliente</td>
+                            <td>@item.DataAudiencia</td>
+                            <td>@item.TipoProcesso</td>
+                            <td>@item.NumeroProcesso</td>
+                            <td>
+                                <button type="submit" @onclick="@(()=> EditarAudiencia(item.IdAudiencia))" class="btn btn-primary">Editar</button>
+                            </td>
+                            <td>
+                                <button type="submit" @onclick="@(()=> DeleteAudiencia(item))" class="btn btn-danger">Deletar</button>
+                            </td>
+                        }
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</div>
+
+<br />
+
+<button type="submit" @onclick="IrPaginaCadastro" class="mt-2 btn btn-primary">Cadastrar</button>
+
+@code
+{
+    List<AudienciaModel> audienciaModels;
+
+    private string NomeUsuario;
+
+    protected override async Task OnInitializedAsync()
+    {
+        audienciaModels = await iConsultaLocal.GetAllAudienciaModel();
+
+        var verificarUsuario = await iConsultaLocal.GetAllLoginGeral();
+
+        if (verificarUsuario != null && verificarUsuario.Count > 0)
+        {
+            NomeUsuario = verificarUsuario[0].Usuario;
+        }
+    }
+
+    private void IrPaginaCadastro()
+    {
+        Navigation.NavigateTo("/cadastroAudiencia");
+    }
+
+    private void EditarAudiencia(int IdAudiencia)
+    {
+        try
+        {
+            Navigation.NavigateTo($"editarAudiencia/{IdAudiencia}");
+        }
+        catch (Exception ex)
+        {
+            Consulta_Local consulta_Local = new Consulta_Local();
+            consulta_Local.RegistrarErro(ex);
+            throw;
+        }
+    }
+
+    private async void DeleteAudiencia(AudienciaModel audiencia)
+    {
+        var response = await iConsultaLocal.DeleteAudienciaModel(audiencia);
+        if (response > 0)
+        {
+            await OnInitializedAsync();
+            this.StateHasChanged();
+        }
+    }
+}

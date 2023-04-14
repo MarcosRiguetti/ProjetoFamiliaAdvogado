@@ -1,0 +1,23 @@
+﻿body {
+    background-image: url("../../images/telaCadastro.jpg");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-attachment: fixed;
+    background-size: cover;
+}
+
+#titulo {
+    font-size: 3rem; /* tamanho da fonte */
+    color: black; /* cor do texto */
+    text-align: center; /* alinhamento do texto */
+    text-shadow: 2px 2px #ddd; /* sombra do texto */
+    margin-top: 50px; /* espaçamento superior */
+    margin-bottom: 30px; /* espaçamento inferior */
+    font-family: 'Montserrat', sans-serif; /* fonte personalizada */
+}
+
+
+#fomrLabel {
+    font-weight: bold;
+    color:white
+}

@@ -1,0 +1,111 @@
+﻿@page "/login"
+
+@using ProjetoFamiliaAdvogado.Model.Login
+@using ProjetoFamiliaAdvogado.Repository
+
+@inject IConsulta_Local iConsultaLocal
+@inject NavigationManager Navigation
+
+<link rel="stylesheet" href="css/projetoFamilia/login.css" />
+
+<h3 id="titulo">LOGIN</h3>
+
+<br />
+<br />
+
+<EditForm Model="@loginModel" OnValidSubmit="Validar">
+    <DataAnnotationsValidator />
+
+    <br />
+
+    <div class="form-group">
+        <label id="fomrLabel">Usuario:</label>
+        <input type="text" @bind-value="loginModel.Usuario" class="form-control" placeholder="👤" />
+        <ValidationMessage For="@(()=> loginModel.Usuario)" />
+    </div>
+
+    <br />
+
+    <div class="mt-2 form-group">
+        <label id="fomrLabel">Senha:</label>
+        <input type="password" @bind-value="loginModel.Password" class="form-control" placeholder="🔒">
+        <ValidationMessage For="@(()=> loginModel.Password)" />
+    </div>
+
+    <div class="mt-2 text-end">
+        <NavLink class="nav-link" href="registro">
+            <span>Criar uma Conta?</span>
+        </NavLink>
+        <NavLink class="nav-link" href="recuperarConta">
+            <span>Recuperar a Conta?</span>
+        </NavLink>
+    </div>
+
+    <br />
+
+    <div class="text-center mt-2">
+        <button class="btn btn-dark btn-lg" type="submit">
+            <span class="@_spinnerClass" role="status" aria-hidden="true"></span>
+            Entrar
+        </button>
+    </div>
+
+</EditForm>
+
+@code 
+{
+    LoginModel loginModel = new();
+
+    private string _spinnerClass = "";
+    private string loginSessaoSalvo;
+
+    List<LoginSessaoModel> loginSessaoModels;
+
+    protected override async Task OnInitializedAsync()
+    {
+        loginSessaoModels = await iConsultaLocal.GetAllLoginGeral();
+
+        if (loginSessaoModels != null && loginSessaoModels.Count > 0)
+        {
+            loginSessaoSalvo = loginSessaoModels[0].Usuario;
+        }
+    }
+
+    private async void Validar()
+    {
+        try
+        {
+            _spinnerClass = "spinner-border spinner-border-sm";
+
+            var verificarExiste = await iConsultaLocal.ObtemLogin(loginModel.Usuario, loginModel.Password);
+
+            if (verificarExiste != null)
+            {
+                if (loginSessaoSalvo == null)
+                {
+                    var logingeralmodel = new Model.Login.LoginSessaoModel
+                    {
+                        Usuario = loginModel.Usuario
+                    };
+
+                    await iConsultaLocal.AddLoginGeral(logingeralmodel);
+                }
+
+                Navigation.NavigateTo("/inicio");
+            }
+            else
+            {
+                await App.Current.MainPage.DisplayAlert("Oops", "Usuario ou senha invalida", "OK");
+            }
+
+            _spinnerClass = "";
+            this.StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Consulta_Local consulta_Local = new Consulta_Local();
+            consulta_Local.RegistrarErro(ex);
+            throw;
+        }
+    }
+}

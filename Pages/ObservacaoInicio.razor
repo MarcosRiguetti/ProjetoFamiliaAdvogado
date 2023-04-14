@@ -1,0 +1,97 @@
+﻿@page "/InicioObservacao"
+
+@using ProjetoFamiliaAdvogado.Model.Justica
+@using ProjetoFamiliaAdvogado.Repository
+
+@inject IConsulta_Local iConsultaLocal
+@inject NavigationManager Navigation
+
+<h3 style="text-align: center; font-weight: bold">Observações Cadastradas</h3>
+
+<br />
+
+<div class="table-responsive">
+    <table class="table">
+        <thead class="thead-dark">
+            <tr>
+                <th scope="col">Observação</th>
+                <th scope="col">Cliente</th>
+                <th scope="col">Data da Audiência</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (anotacoesModels != null && anotacoesModels.Count > 0)
+            {
+                @foreach (var item in anotacoesModels)
+                {
+                    <tr>
+                        @if (item.Usuario == NomeUsuario)
+                        {
+                            <td>@item.Texto</td>
+                            <td>@item.Cliente</td>
+                            <td>@item.DataAudiencia</td>
+                            <td>
+                                <button type="submit" @onclick="@(()=> EditarAnotacao(item.IdAnotacoes))" class="btn btn-primary">Editar</button>
+                            </td>
+                            <td>
+                                <button type="submit" @onclick="@(()=> DeleteAnotacao(item))" class="btn btn-danger">Deletar</button>
+                            </td>
+                        }
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</div>
+
+<br />
+
+<button type="submit" @onclick="IrPaginaCadastro" class="mt-2 btn btn-primary">Cadastrar</button>
+
+@code
+{
+    List<AnotacoesModel> anotacoesModels;
+
+    private string NomeUsuario;
+
+    protected override async Task OnInitializedAsync()
+    {
+        anotacoesModels = await iConsultaLocal.GetAllAnotacoesModel();
+
+        var verificarUsuario = await iConsultaLocal.GetAllLoginGeral();
+
+        if (verificarUsuario != null && verificarUsuario.Count > 0)
+        {
+            NomeUsuario = verificarUsuario[0].Usuario;
+        }
+    }
+
+    private void IrPaginaCadastro()
+    {
+        Navigation.NavigateTo("/cadastroObservacao");
+    }
+
+    private async void DeleteAnotacao(AnotacoesModel observacao)
+    {
+        var response = await iConsultaLocal.DeleteAnotacoesModel(observacao);
+        if (response > 0)
+        {
+            await OnInitializedAsync();
+            this.StateHasChanged();
+        }
+    }
+
+    private void EditarAnotacao(int IdAnotacoes)
+    {
+        try
+        {
+            Navigation.NavigateTo($"editarObservacao/{IdAnotacoes}");
+        }
+        catch (Exception ex)
+        {
+            Consulta_Local consulta_Local = new Consulta_Local();
+            consulta_Local.RegistrarErro(ex);
+            throw;
+        }
+    }
+}

@@ -1,0 +1,18 @@
+﻿body {
+    background-image: url("../../images/TelaInicial.jpg");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-attachment: fixed;
+    background-size: cover;
+}
+
+#titulo {
+    text-align: center;
+    font-weight: bold;
+    color:black
+}
+
+#fomrLabel {
+    font-weight: bold;
+    color:white
+}

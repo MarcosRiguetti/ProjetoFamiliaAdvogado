@@ -1,0 +1,39 @@
+﻿@using ProjetoFamiliaAdvogado.Model.Login
+@using ProjetoFamiliaAdvogado.Repository
+@using ProjetoFamiliaAdvogado.Pages
+
+@inherits LayoutComponentBase
+
+@inject IConsulta_Local iConsultaLocal
+
+
+<div class="page">
+
+    @if (true)
+    {
+        Verificar();
+    }
+
+    @if (loginSessaoModels != null && loginSessaoModels.Count > 0)
+    {
+        <div class="sidebar">
+            <NavMenu />
+        </div>
+    }
+
+    <main>
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+@code
+{
+    List<LoginSessaoModel> loginSessaoModels;
+
+    private async void Verificar()
+    {
+        loginSessaoModels = await iConsultaLocal.GetAllLoginGeral();
+    }
+}

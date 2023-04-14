@@ -1,0 +1,267 @@
+﻿@page "/cadastroAudiencia"
+@page "/editarAudiencia/{IdAudiencia:int}"
+
+@using ProjetoFamiliaAdvogado.Model.Justica
+@using ProjetoFamiliaAdvogado.Model.Cadastro
+@using ProjetoFamiliaAdvogado.Repository
+
+@inject IConsulta_Local iConsultaLocal
+@inject NavigationManager Navigation
+
+<link rel="stylesheet" href="css/projetoFamilia/cadastroAudiencia.css" />
+
+
+<button type="button" @onclick="Retornar" class="btn btn-outline-warning">Voltar</button>
+
+<br />
+<br />
+
+<h3 style="text-align: center; font-weight: bold">Cadastro De Audiência</h3>
+
+<br />
+
+<EditForm Model="@audienciaModel" OnValidSubmit="Validar">
+    <DataAnnotationsValidator />
+
+    <br />
+
+    <div class="mt-2 form-group select-wrapper">
+        <label id="fomrLabel" style="font-weight: bold">Escolha um Cliente:</label>
+        <br />
+        <InputSelect class="form-select" @bind-Value=audienciaModel.Cliente>
+            <option value="">Selecione uma opção</option>
+            @if (clienteModels != null)
+            {
+                @foreach (var item in clienteModels)
+                {
+                    @if (item.UsuarioLogin == NomeUsuario)
+                    {
+                        <option value="@item.Cliente">@item.Cliente</option>
+                    }
+                }
+            }
+        </InputSelect>
+    </div>
+
+
+    <br />
+
+    <div class="mt-2 form-group">
+        <label id="fomrLabel">Escolha a data da Audiência:</label>
+        <input type="datetime-local" @bind-value="audienciaModel.DataAudiencia" class="form-control" placeholder="🗓️">
+        <ValidationMessage For="@(()=> audienciaModel.DataAudiencia)" />
+    </div>
+
+    <br />
+
+    <div class="form-group">
+        <label id="fomrLabel">Digite o Numero do Processo:</label>
+        <input type="text" @bind-value="audienciaModel.NumeroProcesso" class="form-control" placeholder="👤" />
+        <ValidationMessage For="@(()=> audienciaModel.NumeroProcesso)" />
+    </div>
+
+    <br />
+
+    <div class="form-group">
+        <label id="fomrLabel">Digite o Tipo de Processo:</label>
+        <input type="text" @bind-value="audienciaModel.TipoProcesso" class="form-control" placeholder="👤" />
+        <ValidationMessage For="@(()=> audienciaModel.TipoProcesso)" />
+    </div>
+
+    <br />
+
+    <div class="text-center mt-2">
+        @if (IdAudiencia > 0)
+        {
+            <button class="btn btn-dark btn-lg" type="submit">
+                <span class="@_spinnerClass" role="status" aria-hidden="true"></span>
+                Atualizar
+            </button>
+        }
+        else
+        {
+            <button class="btn btn-dark btn-lg" type="submit">
+                <span class="@_spinnerClass" role="status" aria-hidden="true"></span>
+                Cadastrar
+            </button>
+        }
+        
+    </div>
+
+</EditForm>
+
+@code 
+{
+    AudienciaModel audienciaModel = new();
+
+    private string _spinnerClass = "";
+    private string NomeUsuario;
+
+    List<AudienciaModel> audienciaModels;
+    List<ClienteModel> clienteModels;
+
+    [Parameter]
+    public int IdAudiencia { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        audienciaModels = await iConsultaLocal.GetAllAudienciaModel();
+
+        clienteModels = await iConsultaLocal.GetAllClienteModel();
+
+        var verificarUsuario = await iConsultaLocal.GetAllLoginGeral();
+
+        if (verificarUsuario != null && verificarUsuario.Count > 0)
+        {
+            NomeUsuario = verificarUsuario[0].Usuario;
+        }
+
+        if (IdAudiencia > 0)
+        {
+            var response = await iConsultaLocal.GetAudienciaModelByID(IdAudiencia);
+
+            if (response != null)
+            {
+                NomeUsuario = response.Usuario;
+                audienciaModel.TipoProcesso = response.TipoProcesso;
+                audienciaModel.NumeroProcesso = response.NumeroProcesso;
+                audienciaModel.DataAudiencia = response.DataAudiencia;
+                audienciaModel.Cliente = response.Cliente;
+            }
+        }
+    }
+
+    private async void Validar()
+    {
+        try
+        {
+            _spinnerClass = "spinner-border spinner-border-sm";
+
+            if (audienciaModel.Cliente != null && audienciaModel.Cliente != "")
+            {
+                int result = DateTime.Compare(audienciaModel.DataAudiencia, DateTime.Now);
+
+                if (IdAudiencia == 0)
+                {
+                    if (result > 0)
+                    {
+                        var verificarExiste = audienciaModels.FirstOrDefault(x => x.Cliente == audienciaModel.Cliente);
+
+                        if (verificarExiste == null)
+                        {
+                            var audienciaModelFinal = new Model.Justica.AudienciaModel
+                            {
+                                Cliente = audienciaModel.Cliente,
+                                DataAudiencia = audienciaModel.DataAudiencia,
+                                Usuario = NomeUsuario,
+                                TipoProcesso = audienciaModel.TipoProcesso,
+                                NumeroProcesso = audienciaModel.NumeroProcesso
+                            };
+
+                            var responseAudiencia = await iConsultaLocal.AddAudienciaModel(audienciaModelFinal);
+
+                            if (responseAudiencia > 0)
+                            {
+                                await App.Current.MainPage.DisplayAlert("Success", "Audiência Registrada com sucesso!", "OK");
+                                Navigation.NavigateTo("/audienciaInicio");
+                            }
+                            else
+                            {
+                                await App.Current.MainPage.DisplayAlert("Erro", "Audiência não Registrada!", "OK");
+                            }
+                        }
+                        else
+                        {
+                            int compararData = DateTime.Compare(audienciaModel.DataAudiencia, verificarExiste.DataAudiencia);
+
+                            if (compararData != 0)
+                            {
+                                var audienciaModelFinal = new Model.Justica.AudienciaModel
+                                {
+                                    Cliente = audienciaModel.Cliente,
+                                    DataAudiencia = audienciaModel.DataAudiencia,
+                                    Usuario = NomeUsuario,
+                                    TipoProcesso = audienciaModel.TipoProcesso,
+                                    NumeroProcesso = audienciaModel.NumeroProcesso
+                                };
+
+                                var responseAudiencia = await iConsultaLocal.AddAudienciaModel(audienciaModelFinal);
+
+                                if (responseAudiencia > 0)
+                                {
+                                    await App.Current.MainPage.DisplayAlert("Sucesso", "Audiência Registrada com sucesso!", "OK");
+
+                                    Navigation.NavigateTo("/audienciaInicio");
+                                }
+                                else
+                                {
+                                    await App.Current.MainPage.DisplayAlert("Erro", "Não foi possivel Atualizar sua Audencia!", "OK");
+                                }
+                            }
+                            else
+                            {
+                                await App.Current.MainPage.DisplayAlert("Oops", "Uma Audencia com a data e horario, já foi registrada com o cliente escolhido!", "OK");
+                            }
+                        }
+                    }
+                    else
+                    {
+                        await App.Current.MainPage.DisplayAlert("Oops", "Data Invalida!", "OK");
+                    }
+                }
+                else
+                {
+                    var audienciaModelFinal = new Model.Justica.AudienciaModel
+                    {
+                        IdAudiencia = IdAudiencia,
+                        Cliente = audienciaModel.Cliente,
+                        DataAudiencia = audienciaModel.DataAudiencia,
+                        Usuario = NomeUsuario,
+                        TipoProcesso = audienciaModel.TipoProcesso,
+                        NumeroProcesso = audienciaModel.NumeroProcesso
+                    };
+
+                    var responseAudiencia = await iConsultaLocal.UpdateAudienciaModel(audienciaModelFinal);
+
+                    if (responseAudiencia > 0)
+                    {
+                        await App.Current.MainPage.DisplayAlert("Sucesso", "Audencia Atualizada com sucesso!", "OK");
+
+                        Navigation.NavigateTo("/audienciaInicio");
+                    }
+                    else
+                    {
+                        await App.Current.MainPage.DisplayAlert("Erro", "Não foi possivel Atualizar sua Audencia!", "OK");
+                    }
+                }
+            }
+            else
+            {
+                await App.Current.MainPage.DisplayAlert("Oops", "Preencha a opção do cliente!", "OK");
+            }
+
+            _spinnerClass = "";
+            this.StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Consulta_Local consulta_Local = new Consulta_Local();
+            consulta_Local.RegistrarErro(ex);
+            throw;
+        }
+    }
+
+    private void Retornar()
+    {
+        try
+        {
+            Navigation.NavigateTo("/audienciaInicio");
+        }
+        catch (Exception ex)
+        {
+            Consulta_Local consulta_Local = new Consulta_Local();
+            consulta_Local.RegistrarErro(ex);
+            throw;
+        }
+    }
+}

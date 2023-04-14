@@ -1,0 +1,241 @@
+﻿@page "/registro"
+
+@using ProjetoFamiliaAdvogado.Model.Cadastro
+@using ProjetoFamiliaAdvogado.Model.Login
+@using ProjetoFamiliaAdvogado.Repository
+
+@inject IConsulta_Local iConsultaLocal
+@inject NavigationManager Navigation
+
+<link rel="stylesheet" href="css/projetoFamilia/cadastro.css" />
+
+<button type="button" @onclick="Retornar" class="btn btn-outline-warning">Voltar</button>
+
+<br />
+<br />
+
+<h3 id="titulo">CADASTRO</h3>
+
+<br />
+<br />
+
+<EditForm Model="@usuarioModel" OnValidSubmit="Validar">
+    <DataAnnotationsValidator />
+
+    <div class="mb-2">
+        <img src="@_userAvatar" @onclick="ExibirAcao" height="50" width="50" class="rounded-circle" />
+    </div>
+
+    <br />
+
+    <div class="form-group">
+        <label id="fomrLabel">Usuario:</label>
+        <input class="form-control" @bind-value="@usuarioModel.UsuarioLogin" placeholder="Usuario">
+        <ValidationMessage For="@(()=> usuarioModel.UsuarioLogin)" />
+    </div>
+
+    <br />
+
+    <div class="form-group">
+        <label id="fomrLabel">Nome:</label>
+        <input class="form-control" @bind-value="@usuarioModel.Nome" placeholder="Primeiro Nome">
+        <ValidationMessage For="@(()=> usuarioModel.Nome)" />
+    </div>
+
+    <br />
+
+    <div class="form-group">
+        <label id="fomrLabel">Sobrenome:</label>
+        <input class="form-control" @bind-value="@usuarioModel.Sobrenome" placeholder="Sobrenome">
+        <ValidationMessage For="@(()=> usuarioModel.Sobrenome)" />
+    </div>
+
+    <br />
+
+    <div class="mt-2 form-group">
+        <label id="fomrLabel">Genero:</label>
+    </div>
+
+    <div class="mt-2 form-group">
+        <div class="d-flex flex-row">
+            <div class="form-check">
+                <input @onchange="@(()=> usuarioModel.Genero="Masculino")" class="form-check-input" type="radio" name="flexRadioDefault">
+                <label id="fomrLabel" class="form-check-label" for="flexRadioDefault1">
+                    Masculino
+                </label>
+            </div>
+        </div>
+        <ValidationMessage For="@(()=> usuarioModel.Genero)" />
+    </div>
+
+    <div class="mt-2 form-group">
+        <div class="d-flex flex-row">
+            <div class="form-check">
+                <input @onchange="@(()=> usuarioModel.Genero="Feminino")" class="form-check-input" type="radio" name="flexRadioDefault">
+                <label id="fomrLabel" class="form-check-label" for="flexRadioDefault2">
+                    Feminino
+                </label>
+            </div>
+        </div>
+        <ValidationMessage For="@(()=> usuarioModel.Genero)" />
+    </div>
+
+    <br />
+
+    <div class="mt-2 form-group">
+        <label id="fomrLabel">Senha:</label>
+        <input type="password" @bind-value="@usuarioModel.Password" class="form-control" placeholder="senha">
+        <ValidationMessage For="@(()=> usuarioModel.Password)" />
+    </div>
+
+    <br />
+
+    <div class="text-center mt-2">
+        <button class="btn btn-dark" type="submit">
+            <span class="@_spinnerClass" role="status" aria-hidden="true"></span>
+            Registrar
+        </button>
+    </div>
+</EditForm>
+
+@code {
+    UsuarioModel usuarioModel = new();
+
+    private string _userAvatar = "images/user.png";
+    private string _spinnerClass = "";
+    private string _imageBase64Data;
+
+    private List<LoginModel> loginSalvos;
+
+    protected override async Task OnInitializedAsync()
+    {
+        loginSalvos = await iConsultaLocal.GetAllLogin();
+    }
+
+    private async void Validar()
+    {
+        try
+        {
+            _spinnerClass = "spinner-border spinner-border-sm";
+
+            var verificarExiste = loginSalvos.FirstOrDefault(x => x.Usuario == usuarioModel.UsuarioLogin);
+
+            if (verificarExiste == null)
+            {
+                var loginModel = new Model.Login.LoginModel
+                {
+                    Usuario = usuarioModel.UsuarioLogin,
+                    Password = usuarioModel.Password
+                };
+
+                var responseLogin = await iConsultaLocal.AddLogin(loginModel);
+
+                if (!string.IsNullOrWhiteSpace(_imageBase64Data))
+                {
+                    // Converter a imagem em bytes
+                    var imageBytes = Convert.FromBase64String(_imageBase64Data);
+
+                    // Criar o objeto ImageModel
+                    var imageModel = new ProjetoFamiliaAdvogado.Model.Cadastro.UsuarioModel
+                    {
+                        UserAvatar = imageBytes,
+                        Nome = usuarioModel.Nome,
+                        Sobrenome = usuarioModel.Sobrenome,
+                        Genero = usuarioModel.Genero,
+                        Password = usuarioModel.Password,
+                        UsuarioLogin = usuarioModel.UsuarioLogin,
+                        NameImage = _userAvatar
+                    };
+
+                    var responseUsuario = await iConsultaLocal.AddUsuario(imageModel);
+                }
+                else
+                {
+                    var imageModel = new ProjetoFamiliaAdvogado.Model.Cadastro.UsuarioModel
+                    {
+                        Nome = usuarioModel.Nome,
+                        Sobrenome = usuarioModel.Sobrenome,
+                        Genero = usuarioModel.Genero,
+                        Password = usuarioModel.Password,
+                        UsuarioLogin = usuarioModel.UsuarioLogin
+                    };
+
+                    var responseUsuario = await iConsultaLocal.AddUsuario(imageModel);
+                }
+
+                await App.Current.MainPage.DisplayAlert("Sucesso", "Usuario Registrado!", "OK");
+
+                Navigation.NavigateTo("/");
+            }
+            else
+            {
+                await App.Current.MainPage.DisplayAlert("Oops", "Este Usuario já esta cadastrado!\r\n Escolha outro Nome!", "OK");
+            }
+
+            _spinnerClass = "";
+            this.StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Consulta_Local consulta_Local = new Consulta_Local();
+            consulta_Local.RegistrarErro(ex);
+            throw;
+        }
+    }
+
+    private async void ExibirAcao()
+    {
+        try
+        {
+            string response = await App.Current.MainPage.DisplayActionSheet("Selecione a opção", "OK", null, "Tirar a foto", "Add Foto");
+
+            if (response == "Tirar a foto")
+            {
+                if (_userAvatar != "images/user.png")
+                {
+                    _userAvatar = "images/user.png";
+                    _imageBase64Data = null;
+                }
+            }
+            else if (response == "Add Foto")
+            {
+                var photo = await MediaPicker.Default.PickPhotoAsync();
+                if (photo != null)
+                {
+                    using (var stream = await photo.OpenReadAsync())
+                    {
+                        var memoryStream = new MemoryStream();
+                        await stream.CopyToAsync(memoryStream);
+                        var imageBytes = memoryStream.ToArray();
+
+                        // Converter os bytes em uma string base64 para exibir a imagem na tela
+                        _userAvatar = string.Format("data:image/png;base64,{0}", Convert.ToBase64String(imageBytes));
+
+                        // Armazenar a string base64 para ser usada posteriormente na validação
+                        _imageBase64Data = Convert.ToBase64String(imageBytes);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Consulta_Local consulta_Local = new Consulta_Local();
+            consulta_Local.RegistrarErro(ex);
+            throw;
+        }
+    }
+
+    private void Retornar()
+    {
+        try
+        {
+            Navigation.NavigateTo("/login");
+        }
+        catch (Exception ex)
+        {
+            Consulta_Local consulta_Local = new Consulta_Local();
+            consulta_Local.RegistrarErro(ex);
+            throw;
+        }
+    }
+}

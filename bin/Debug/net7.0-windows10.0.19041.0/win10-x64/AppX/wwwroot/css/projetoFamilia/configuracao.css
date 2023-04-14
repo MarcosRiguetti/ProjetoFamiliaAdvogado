@@ -1,0 +1,24 @@
+﻿.titulo-configuracoes {
+    font-size: 2.0rem;
+    font-weight: bold;
+    text-align: center;
+    color: white;
+    letter-spacing: 2px;
+    margin-bottom: 20px;
+    text-align: center;
+    font-weight: bold;
+}
+
+body {
+    background-image: url("../../images/Logo.jpg");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-attachment: fixed;
+    background-size: cover;
+}
+
+
+#fomrLabel {
+    font-weight: bold;
+    color: white
+}

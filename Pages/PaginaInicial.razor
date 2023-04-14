@@ -1,0 +1,206 @@
+﻿@page "/inicio"
+
+@using ProjetoFamiliaAdvogado.Repository
+@using ProjetoFamiliaAdvogado.Model.Cadastro
+@using ProjetoFamiliaAdvogado.Model.Justica
+@using SQLite;
+
+@inject IConsulta_Local iConsultaLocal
+@inject NavigationManager Navigation
+
+<link rel="stylesheet" href="css/projetoFamilia/PaginaInicial.css" />
+
+<h3 style="text-align: center; font-weight:bold; color:white">Seja Bem Vindo: @NomeUsuario</h3>
+
+<br />
+
+<div class="d-flex justify-content-center">
+    @if (_userAvatar != null)
+    {
+        <img src="@_userAvatar" height="100" width="100" class="rounded-circle" />
+    }
+</div>
+
+<br />
+<br />
+
+<h5 style="text-align: center; font-weight: bold; color:white">Audiência(s)</h5>
+
+<br />
+
+@if (alertaMensagens != null && alertaMensagens.Count > 0)
+{
+    <div class="alert alert-warning" role="alert">
+        @foreach (var item in alertaMensagens)
+        {
+            <h5>@item</h5>
+        }
+    </div>
+}
+
+<div class="table-responsive">
+    <table class="table">
+        <thead class="thead-dark">
+            <tr>
+                <th scope="col" style="color:white">Cliente</th>
+                <th scope="col" style="color:white">Data da Audiência</th>
+                <th scope="col" style="color:white">Numero de Processo</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (audienciaModels != null && audienciaModels.Count > 0)
+            {
+                @foreach (var item in audienciaModels)
+                {
+                    @if (item.Usuario == NomeUsuario)
+                    {
+                        @if (compararData > 0)
+                        {
+                            <tr>
+                                <td style="color:white">@item.Cliente</td>
+                                <td style="color:white">@item.DataAudiencia</td>
+                                <td style="color:white">@item.NumeroProcesso</td>
+                            </tr>
+                        }
+                    }
+                }
+            }
+        </tbody>
+    </table>
+</div>
+
+<br />
+<br />
+<br />
+
+<h5 style="text-align: center; font-weight: bold; color:white">Observações</h5>
+
+<br />
+
+<div class="table-responsive">
+    <table class="table">
+        <thead class="thead-dark">
+            <tr>
+                <th scope="col" style="color:white">Observação</th>
+                <th scope="col" style="color:white">Cliente</th>
+                <th scope="col" style="color:white">Data da Audiência</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (anotacoesModels != null && anotacoesModels.Count > 0)
+            {
+                @foreach (var item in anotacoesModels)
+                {
+                    @if (item.Usuario == NomeUsuario)
+                    {
+                        @if (item.DataAudiencia != null)
+                        {
+                            @if (compararData > 0)
+                            {
+                                <tr>
+                                    <td style="color:white">@item.Texto</td>
+                                    <td style="color:white">@item.Cliente</td>
+                                    <td style="color:white">@item.DataAudiencia</td>
+                                    <td style="color:white">@item.Processo</td>
+                                </tr>
+                            }
+                        }
+                    }
+                }
+            }
+        </tbody>
+    </table>
+</div>
+
+@code 
+{
+    [Parameter]
+    public string Mensagem { get; set; }
+    private string NomeUsuario;
+    private string _userAvatar;
+
+    private List<UsuarioModel> usuarioModels;
+    private List<AudienciaModel> audienciaModels;
+    private List<AnotacoesModel> anotacoesModels;
+    private List<string> alertaMensagens { get; } = new List<string>();
+
+    private int compararData;
+
+    protected async override Task OnInitializedAsync()
+    {
+        try
+        {
+            anotacoesModels = await iConsultaLocal.GetAllAnotacoesModel();
+
+            var verificarUsuario = await iConsultaLocal.GetAllLoginGeral();
+
+            if (verificarUsuario != null && verificarUsuario.Count > 0)
+            {
+                NomeUsuario = verificarUsuario[0].Usuario;
+            }
+
+            usuarioModels = await iConsultaLocal.GetAllUsuario();
+
+            if (usuarioModels != null && usuarioModels.Count > 0)
+            {
+                var verificar = usuarioModels.FirstOrDefault(x => x.UsuarioLogin == NomeUsuario);
+
+                if (verificar != null)
+                {
+                    if (verificar.UserAvatar != null)
+                    {
+                        var trazerImagem = GetImageBase64(verificar);
+                        _userAvatar = trazerImagem;
+                    }
+                    else
+                    {
+                        _userAvatar = "images/user.png";
+                    }
+                }
+            }
+
+            audienciaModels = await iConsultaLocal.GetAllAudienciaModel();
+
+            if (audienciaModels != null && audienciaModels.Count > 0)
+            {
+                foreach (var item in audienciaModels)
+                {
+                    if (DateTime.Now.AddDays(7) >= @item.DataAudiencia)
+                    {
+                        var comparar = DateTime.Compare(@item.DataAudiencia, DateTime.Now);
+                        compararData = comparar;
+                        if (comparar > 0)
+                        {
+                            Mensagem = $"Audiência do dia {item.DataAudiencia}, do Cliente {item.Cliente}, está próxima de acontecer!";
+                            alertaMensagens.Add(Mensagem);
+                        }
+                    }
+                }
+            }
+
+            Navigation.NavigateTo("/inicio");
+        }
+        catch (Exception ex)
+        {
+            Consulta_Local consulta_Local = new Consulta_Local();
+            consulta_Local.RegistrarErro(ex);
+            throw;
+        }
+    }
+
+    public string GetImageBase64(UsuarioModel usuario)
+    {
+        try
+        {
+            var imageData = usuario.UserAvatar;
+            var imageBase64 = Convert.ToBase64String(imageData);
+            return string.Format("data:image/png;base64,{0}", imageBase64);
+        }
+        catch (Exception ex)
+        {
+            Consulta_Local consulta_Local = new Consulta_Local();
+            consulta_Local.RegistrarErro(ex);
+            throw;
+        }
+    }
+}

@@ -1,0 +1,120 @@
+﻿@page "/inicioCliente"
+
+@using ProjetoFamiliaAdvogado.Model.Cadastro
+@using ProjetoFamiliaAdvogado.Repository
+
+@inject IConsulta_Local iConsultaLocal
+@inject NavigationManager Navigation
+
+<h3 style="text-align: center; font-weight: bold">Área do Cliente</h3>
+
+<br />
+<br />
+
+<div class="table-responsive">
+    <table class="table">
+        <thead class="thead-dark">
+            <tr>
+                <th scope="col">Advogado</th>
+                <th scope="col">Cliente</th>
+                <th scope="col">Contato</th>
+                <th scope="col">Email</th>
+                <th scope="col">Acusada</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (clienteModels != null && clienteModels.Count > 0)
+            {
+                @foreach (var item in clienteModels)
+                {
+                    <tr>
+                        @if (item.UsuarioLogin == NomeUsuario)
+                        {
+                            <td>@item.Advogado</td>
+                            <td>@item.Cliente</td>
+                            <td>@item.Contato</td>
+                            <td>@item.Email</td>
+                            <td>@item.Acusada</td>
+                            <td>
+                                <button type="submit" @onclick="@(()=> EditarCliente(item.ClienteModelID))" class="btn btn-primary">Editar</button>
+                            </td>
+                            <td>
+                                <button type="submit" @onclick="@(()=> DeleteCliente(item))" class="btn btn-danger">Deletar</button>
+                            </td>
+                        }
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</div>
+
+<br />
+
+<button type="submit" @onclick="IrPaginaCadastro" class="mt-2 btn btn-primary">Cadastrar</button>
+
+@code
+{
+    List<ClienteModel> clienteModels;
+
+    private string NomeUsuario;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            clienteModels = await iConsultaLocal.GetAllClienteModel();
+
+            var verificarUsuario = await iConsultaLocal.GetAllLoginGeral();
+
+            if (verificarUsuario != null && verificarUsuario.Count > 0)
+            {
+                NomeUsuario = verificarUsuario[0].Usuario;
+            }
+        }
+        catch (Exception ex)
+        {
+            Consulta_Local consulta_Local = new Consulta_Local();
+            consulta_Local.RegistrarErro(ex);
+            throw;
+        }
+    }
+
+    private async void DeleteCliente(ClienteModel cliente)
+    {
+        try
+        {
+            var response = await iConsultaLocal.DeleteClienteModel(cliente);
+            if (response > 0)
+            {
+                await OnInitializedAsync();
+                this.StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Consulta_Local consulta_Local = new Consulta_Local();
+            consulta_Local.RegistrarErro(ex);
+            throw;
+        }
+    }
+
+    private void IrPaginaCadastro()
+    {
+        Navigation.NavigateTo("/cadastroCliente");
+    }
+
+    private void EditarCliente(int ClienteModelID)
+    {
+        try
+        {
+            Navigation.NavigateTo($"editarCliente/{ClienteModelID}");
+        }
+        catch (Exception ex)
+        {
+            Consulta_Local consulta_Local = new Consulta_Local();
+            consulta_Local.RegistrarErro(ex);
+            throw;
+        }
+    }
+}
